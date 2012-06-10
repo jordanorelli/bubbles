@@ -27,14 +27,14 @@ class Note {
     xorigin = x;
     y = height;
     phaseOffset = random(0, TWO_PI); // start each bubble with a randome phase.
-    maxOscAngle = map(freq, minFreq, maxFreq, PI, 4 * PI); // higher notes oscillate more quickly
+    maxOscAngle = map(freq, minFreq, maxFreq, PI, 2 * PI); // higher notes oscillate more quickly
     maxDiameter = map(freq, minFreq, maxFreq, 400, 80); // lower notes make larger bubbles 
     maxStrokeWeight = map(freq, minFreq, maxFreq, 200, 20);
     oscAmp = map(freq, minFreq, maxFreq, 30, 300); // higher notes trace tighter waveforms
   }
   
   void updatePosition() {
-    x = xorigin + oscAmp * sin(map(age, 0, maxNoteAge, 0, maxOscAngle));
+    x = xorigin + oscAmp * sin(map(age, 0, maxNoteAge, 0, maxOscAngle) + phaseOffset);
     y = map(age, 0, maxNoteAge, height, 0);
   }
   
