@@ -38,7 +38,7 @@ class Note {
 
 void setup() {
   smooth();
-  size(800, 600);
+  size(1440, 900);
   oscP5 = new OscP5(this, 9000);
   oscP5.plug(this, "receiveNote", "/noteOn");
   queued = new ArrayList();
