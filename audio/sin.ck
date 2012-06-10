@@ -14,9 +14,9 @@ fun void playNote(float f) {
     f => s.freq;
     sendNote(f, p);
     e.keyOn();
-    100::ms => now;
+    200::ms => now;
     e.keyOff();
-    100::ms => now;
+    200::ms => now;
 }
 
 fun void sendNote(float f, float p) {

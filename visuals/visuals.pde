@@ -16,7 +16,7 @@ color colorFromFreq(float freq) {
 }
 
 class Note {
-  float freq, pan, x, y;
+  float freq, pan, x, y, xorigin, phaseOffset, maxOscAngle, maxDiameter, maxStrokeWeight, oscAmp;
   int age;
   
   Note(float f, float p) {
@@ -24,11 +24,17 @@ class Note {
     freq = f;
     pan = p;
     x = map(p, -1.0, 1.0, 0, width);
+    xorigin = x;
     y = height;
+    phaseOffset = random(0, TWO_PI); // start each bubble with a randome phase.
+    maxOscAngle = map(freq, minFreq, maxFreq, PI, 4 * PI); // higher notes oscillate more quickly
+    maxDiameter = map(freq, minFreq, maxFreq, 400, 80); // lower notes make larger bubbles 
+    maxStrokeWeight = map(freq, minFreq, maxFreq, 200, 20);
+    oscAmp = map(freq, minFreq, maxFreq, 30, 300); // higher notes trace tighter waveforms
   }
   
   void updatePosition() {
-    // x always stays the same for now
+    x = xorigin + oscAmp * sin(map(age, 0, maxNoteAge, 0, maxOscAngle));
     y = map(age, 0, maxNoteAge, height, 0);
   }
   
@@ -36,8 +42,8 @@ class Note {
     updatePosition();
     noFill();
     stroke(colorFromFreq(freq), map(age, 0, maxNoteAge, 100, 0));
-    strokeWeight(map(age, 0, maxNoteAge, 4, 40));
-    float d = map(age, 0, maxNoteAge, 20, 400);
+    strokeWeight(map(age, 0, maxNoteAge, 4, maxStrokeWeight));
+    float d = map(age, 0, maxNoteAge, 20, maxDiameter);
     ellipse(x, y, d, d);
     age++;
   }
@@ -56,9 +62,9 @@ void setup() {
   background(0);
 }
 
-void draw() {
+void draw(){
   background(0);
-  
+
   // add all the queed items.
   for(int i = 0; i < queued.size(); i++) {
     active.add(queued.get(i));
