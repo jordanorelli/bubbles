@@ -5,10 +5,15 @@ OscP5 oscP5;
 NetAddress inbound;
 float minFreq = 140;
 float maxFreq = 1600;
-int maxNoteAge = 50;
+int maxNoteAge = 40;
 
 ArrayList queued; // notes that have been added, but have not yet been drawn.
 ArrayList active; // notes that are currently active.
+
+color colorFromFreq(float freq) {
+  colorMode(HSB, 100);
+  return color(map(freq, minFreq, maxFreq, 0, 100), 100, 100);
+}
 
 class Note {
   float freq, pan, x, y;
@@ -19,13 +24,19 @@ class Note {
     freq = f;
     pan = p;
     x = map(p, -1.0, 1.0, 0, width);
-    y = map(f, minFreq, maxFreq, 0, height);
+    y = height;
+  }
+  
+  void updatePosition() {
+    // x always stays the same for now
+    y = map(age, 0, maxNoteAge, height, 0);
   }
   
   void update() {
+    updatePosition();
     noFill();
-    stroke(255, map(age, 0, maxNoteAge, 255, 0));
-    strokeWeight(4);
+    stroke(colorFromFreq(freq), map(age, 0, maxNoteAge, 100, 0));
+    strokeWeight(map(age, 0, maxNoteAge, 4, 40));
     float d = map(age, 0, maxNoteAge, 20, 400);
     ellipse(x, y, d, d);
     age++;
@@ -37,7 +48,6 @@ class Note {
 }
 
 void setup() {
-  smooth();
   size(1440, 900);
   oscP5 = new OscP5(this, 9000);
   oscP5.plug(this, "receiveNote", "/noteOn");
