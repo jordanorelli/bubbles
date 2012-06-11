@@ -94,7 +94,7 @@ public class Voice
             targetFreq => osc.freq;
         }
 
-        pan.pan() + Math.rand2f(-0.01, 0.01) => float targetPan;
+        pan.pan() + Math.rand2f(-0.1, 0.1) => float targetPan;
         if(targetPan < -1) {
             -1 => pan.pan;
         } else if (targetPan > 1) {
@@ -119,7 +119,5 @@ fun void sendNote(float f, float p) {
 
 new Voice @=> Voice @ v1;
 v1.startLoop();
-new Voice @=> Voice @ v2;
-v2.startLoop();
 
 while (1) { 1::second => now; }
