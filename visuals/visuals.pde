@@ -94,13 +94,13 @@ void draw(){
   background(0);
 
   // add all the queed items.
-  for(int i = 0; i < queued.size(); i++) {
+  for(int i = queued.size() - 1; i >=0; i--) {
     active.add(queued.get(i));
     queued.remove(i);
   }
 
   // update all the existing items
-  for(int i = 0; i < active.size(); i++) {
+  for(int i = active.size() - 1; i >= 0; i--) {
     Note note = (Note)active.get(i);
     note.update();
     if(note.dead()) {
