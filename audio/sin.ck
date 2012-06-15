@@ -14,8 +14,8 @@ float mouseX;
 float mouseY;
 0 => int mouseDown;
 
-float validFreqs[48];
-for(0 => int i; i < 48; i++) {
+float validFreqs[49];
+for(0 => int i; i < 49; i++) {
     minFreq * Math.pow(toneStep, i) => validFreqs[i];
 }
 
@@ -36,17 +36,24 @@ fun float nearestFreq(float f) {
             return validFreqs[i+1];
         }
     }
-    <<< "FUCK" >>>;
+    <<< "FUCK", f >>>;
     return f;
 }
 
 
 60::ms => dur mouseRate;
 TriOsc mouseOsc => ADSR mouseEnv => Pan2 mousePan => dac;
-mousePan => Echo echo => JCRev rev => dac;
-mouseRate => echo.delay;
+mouseEnv.set(80::ms, 20::ms, 0.8, 20::ms);
 0.2 => mouseOsc.gain;
 mouseEnv.keyOff();
+
+mousePan.left => PRCRev revL => Pan2 panL => dac;
+-1 => panL.pan;
+mousePan.right => PRCRev revR => Pan2 panR => dac;
+1 => panR.pan;
+0.6 => revL.mix;
+0.6 => revR.mix;
+
 fun void mouseNotes() {
     float targetFreq;
     while(true) {
@@ -54,6 +61,7 @@ fun void mouseNotes() {
             (1 - mouseY) * (maxFreq - minFreq) + minFreq => targetFreq;
             nearestFreq(targetFreq) => mouseOsc.freq;
             (mouseX * 2) - 1 => mousePan.pan;
+            <<< mousePan.pan() >>>;
             mouseEnv.keyOn();
             mouseNote(mouseOsc.freq(), mousePan.pan());
             1.5 * mouseRate => now;

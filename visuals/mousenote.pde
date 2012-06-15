@@ -1,6 +1,6 @@
 class MouseNote {
   int maxAge = 30;
-  int maxDiameter = 600;
+  int maxDiameter = 550;
 
   float freq;
   float pan;
