@@ -1,7 +1,8 @@
 OscSend toUI;
 toUI.setHost("localhost", 9000);
-140 => float minFreq;
-1600 => float maxFreq;
+110 => float minFreq;
+1760 => float maxFreq;
+0 => int numVoices;
 
 Math.pow(2, 1.0 / 12.0) => float toneStep;
 
@@ -9,14 +10,64 @@ OscRecv recv;
 9001 => recv.port;
 recv.listen();
 
-SinOsc mouseOsc => Pan2 mousePan => dac;
+float mouseX;
+float mouseY;
+0 => int mouseDown;
+
+float validFreqs[48];
+for(0 => int i; i < 48; i++) {
+    minFreq * Math.pow(toneStep, i) => validFreqs[i];
+}
+
+// given a frequency, gives the nearest valid frequency.
+fun float nearestFreq(float f) {
+    if(f < minFreq || f > maxFreq) return f;
+
+    float top;
+    float bottom;
+    for(0 => int i; i < validFreqs.cap() - 1; i++) {
+        if(f == validFreqs[i]) {
+            return f;
+        }
+        if(f > validFreqs[i] && f < validFreqs[i+1]) {
+            if(Math.fabs(f-validFreqs[i]) < Math.fabs(f-validFreqs[i+1])) {
+                return validFreqs[i];
+            }
+            return validFreqs[i+1];
+        }
+    }
+    <<< "FUCK" >>>;
+    return f;
+}
+
+
+60::ms => dur mouseRate;
+TriOsc mouseOsc => ADSR mouseEnv => Pan2 mousePan => dac;
+mousePan => Echo echo => JCRev rev => dac;
+mouseRate => echo.delay;
 0.2 => mouseOsc.gain;
-0 => mouseOsc.op;
+mouseEnv.keyOff();
+fun void mouseNotes() {
+    float targetFreq;
+    while(true) {
+        if(mouseDown) {
+            (1 - mouseY) * (maxFreq - minFreq) + minFreq => targetFreq;
+            nearestFreq(targetFreq) => mouseOsc.freq;
+            (mouseX * 2) - 1 => mousePan.pan;
+            mouseEnv.keyOn();
+            mouseNote(mouseOsc.freq(), mousePan.pan());
+            1.5 * mouseRate => now;
+            mouseEnv.keyOff();
+            0.5 * mouseRate => now;
+        } else {
+            10::samp=>now;
+        }
+    }
+}
+spork ~ mouseNotes();
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // handle mouse down
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-float mouseX;
-float mouseY;
 fun void handleMousePresses() {
     recv.event("/mousePressed", "ff") @=> OscEvent @ press;
     while(true) {
@@ -25,9 +76,7 @@ fun void handleMousePresses() {
             press.getFloat() => mouseX;
             press.getFloat() => mouseY;
         }
-        (1 - mouseY) * (maxFreq - minFreq) + minFreq => mouseOsc.freq;
-        (mouseX * 2) - 1 => mousePan.pan;
-        1 => mouseOsc.op;
+        1 => mouseDown;
     }
 }
 spork ~ handleMousePresses();
@@ -41,7 +90,7 @@ fun void handleMouseReleased() {
     while(true) {
         release => now;
         while(release.nextMsg()) { } // herp derp
-        0 => mouseOsc.op;
+        0 => mouseDown;
     }
 }
 spork ~ handleMouseReleased();
@@ -58,8 +107,6 @@ fun void handleMouseDragged() {
             move.getFloat() => mouseX;
             move.getFloat() => mouseY;
         }
-        (1 - mouseY) * (maxFreq - minFreq) + minFreq => mouseOsc.freq;
-        (mouseX * 2) - 1 => mousePan.pan;
     }
 }
 spork ~ handleMouseDragged();
@@ -71,9 +118,10 @@ public class Voice
     Shred @ s;
     
     440 => osc.freq;
-    0.2 => osc.gain;
+    0.8 => osc.gain;
     20::ms => e.attackTime;
     20::ms => e.releaseTime;
+
     fun void startLoop() {
         spork ~ loop() @=> s;
     }
@@ -117,7 +165,15 @@ fun void sendNote(float f, float p) {
     toUI.startMsg("/noteOn", "ff");
 }
 
-new Voice @=> Voice @ v1;
-v1.startLoop();
+fun void mouseNote(float f, float p) {
+    f => toUI.addFloat;
+    p => toUI.addFloat;
+    toUI.startMsg("/mouseNote", "ff");
+}
+
+for (0 => int i; i < numVoices; i++) {
+    new Voice @=> Voice @ v;
+    v.startLoop();
+}
 
 while (1) { 1::second => now; }
