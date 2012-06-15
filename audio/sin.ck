@@ -20,24 +20,29 @@ for(0 => int i; i < 49; i++) {
 }
 
 // given a frequency, gives the nearest valid frequency.
-fun float nearestFreq(float f) {
-    if(f < minFreq || f > maxFreq) return f;
+fun int nearestFreq(float f) {
+    if(f <= minFreq) {
+        return 0;
+    }
+    if(f >= maxFreq) {
+        return 48;
+    }
 
     float top;
     float bottom;
     for(0 => int i; i < validFreqs.cap() - 1; i++) {
         if(f == validFreqs[i]) {
-            return f;
+            return i;
         }
         if(f > validFreqs[i] && f < validFreqs[i+1]) {
             if(Math.fabs(f-validFreqs[i]) < Math.fabs(f-validFreqs[i+1])) {
-                return validFreqs[i];
+                return i;
             }
-            return validFreqs[i+1];
+            return i + 1;
         }
     }
     <<< "FUCK", f >>>;
-    return f;
+    return 0;
 }
 
 
@@ -56,14 +61,14 @@ mousePan.right => PRCRev revR => Pan2 panR => dac;
 
 fun void mouseNotes() {
     float targetFreq;
+    int toneNumber;
     while(true) {
         if(mouseDown) {
-            (1 - mouseY) * (maxFreq - minFreq) + minFreq => targetFreq;
-            nearestFreq(targetFreq) => mouseOsc.freq;
+            Math.round((1.0 - mouseY) * 48.0) $ int => toneNumber;
+            validFreqs[toneNumber] => mouseOsc.freq;
             (mouseX * 2) - 1 => mousePan.pan;
-            <<< mousePan.pan() >>>;
+            mouseNote(toneNumber, mousePan.pan());
             mouseEnv.keyOn();
-            mouseNote(mouseOsc.freq(), mousePan.pan());
             1.5 * mouseRate => now;
             mouseEnv.keyOff();
             0.5 * mouseRate => now;
@@ -173,10 +178,10 @@ fun void sendNote(float f, float p) {
     toUI.startMsg("/noteOn", "ff");
 }
 
-fun void mouseNote(float f, float p) {
-    f => toUI.addFloat;
+fun void mouseNote(int i, float p) {
+    i => toUI.addInt;
     p => toUI.addFloat;
-    toUI.startMsg("/mouseNote", "ff");
+    toUI.startMsg("/mouseNote", "if");
 }
 
 for (0 => int i; i < numVoices; i++) {

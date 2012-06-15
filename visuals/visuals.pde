@@ -7,8 +7,13 @@ NetAddress outbound;
 PFont font;
 float minFreq = 110;
 float maxFreq = 1760;
+float toneStep = pow(2, 1.0/12.0);
+float toneHeight; // y-distance in the display between semitones
+float[] validFreqs = new float[49];
+
 int maxNoteAge = 20;
 boolean controlDown = false; // I don't know if this is necessary...
+boolean guide = false; // whether or not to show horizontal guide lines
 
 static final int normalMode = 0;
 static final int exMode = 1;
@@ -29,6 +34,15 @@ color colorFromFreq(float freq) {
 
 void setup() {
   size(1440, 900);
+  toneHeight = (float)height / (validFreqs.length - 1);
+  println(height);
+  println(validFreqs.length);
+  println(toneHeight);
+
+  for(int i = 0; i < 49; i++) {
+    validFreqs[i] = minFreq * pow(toneStep, i);
+  }
+
   frameRate(30);
   smooth();
   font = loadFont("Inconsolata-16.vlw");
@@ -68,6 +82,8 @@ void mouseDragged() {
 
 void draw(){
   background(0);
+  drawGuides();
+
   if(mousePressed) {
     noCursor();
   } else {
@@ -135,6 +151,8 @@ void normalKey() {
   }
 }
 
+// clears the ex-mode command line.  It dangerously makes a 200-character
+// buffer, which we could quite easily type off the end of.
 void initExBuffer() {
   exBuffer = new char[200];
   exBuffer[0] = ':';
@@ -157,6 +175,7 @@ void exKey() {
       case ENTER:
       case RETURN:
         currentMode = normalMode;
+        runExCommand(exBuffer);
         return;
       case BACKSPACE:
       case DELETE:
@@ -178,6 +197,40 @@ void exKey() {
   exIndex++;
 }
 
+// parses the ex-mode line command.  Takes in a raw character array, splits on
+// whitespace, and finds applicable commands.
+void runExCommand(char[] raw) {
+  String s = new String(subset(raw, 1));
+  String args[] = s.trim().split(" ");
+  if (args[0].equals("set")) {
+    runSetCommand(subset(args, 1));
+  }
+}
+
+// dispatches whatever :set commands are used.
+void runSetCommand(String[] args) {
+  if(args.length < 1) {
+    return;
+  }
+  if(args[0].equals("guide")) {
+    setGuide();
+  } else if(args[0].equals("noguide")) {
+    clearGuide();
+  } else {
+    println("unknown SET arg: '" + args[0]);
+  }
+}
+
+// turns on frequency guide lines
+void setGuide() {
+  guide = true;
+}
+
+// turns off frequency guide lines
+void clearGuide() {
+  guide = false;
+}
+
 // triggered when a key is pressed in ex mode while control is held
 void exCtrlKey() {
   switch(key) {
@@ -187,6 +240,7 @@ void exCtrlKey() {
   }
 }
 
+// writes out the current ex-mode command line, if currently in ex mode.
 void renderExBuffer() {
   if(currentMode == exMode) {
     textAlign(LEFT);
@@ -194,10 +248,37 @@ void renderExBuffer() {
   }
 }
 
+void drawGuides() {
+  if(guide) {
+    stroke(40);
+    strokeWeight(2);
+    for(int i = 0; i < validFreqs.length; i++) {
+      line(0, freqHeight(i), width, freqHeight(i));
+    }
+    float y = freqHeight(nearestNote());
+    stroke(200);
+    strokeWeight(3);
+    line(0, y, width, y);
+  }
+}
+
+float freqHeight(int freqNum) {
+  return height - (toneHeight * freqNum);
+}
+
+int nearestNote() {
+  return round(map(mouseY, 0, height, validFreqs.length, 0));
+}
+
+// handles the processing of OSC messages from the ChucK end of things.  These
+// particular messages represent the notes from the acommpaniment, which I'll
+// probably remove.
 public void receiveNote(float freq, float pan) {
   queued.add(new Note(freq, pan));
 }
 
-public void mouseNote(float freq, float pan) {
-  mouseQueue.add(new MouseNote(freq, pan));
+// handles the processing of OSC message from ChucK.  These particular messages
+// represent the notes that follow the mouse movement.
+public void mouseNote(int toneNumber, float pan) {
+  mouseQueue.add(new MouseNote(toneNumber, pan));
 }

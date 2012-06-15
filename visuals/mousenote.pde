@@ -1,6 +1,7 @@
 class MouseNote {
   int maxAge = 30;
   int maxDiameter = 550;
+  int toneNumber;
 
   float freq;
   float pan;
@@ -10,14 +11,15 @@ class MouseNote {
   float opacity;
   int age;
 
-  MouseNote(float f, float p) {
+  MouseNote(int i, float p) {
     age = 0;
-    freq = f;
+    toneNumber = i;
     pan = p;
     diameter = 10;
+    freq = validFreqs[i];
 
     x = map(p, -1, 1, 0, width);
-    y = map(f, minFreq, maxFreq, height, 0);
+    y = freqHeight(toneNumber);
   }
 
   void update() {
